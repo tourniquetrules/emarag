@@ -1,0 +1,30 @@
+# Core dependencies for Emergency Medicine RAG Chat Interface
+gradio>=4.0.0
+requests>=2.25.0
+PyPDF2>=3.0.0
+numpy>=1.21.0
+pickle-mixin>=1.0.2
+
+# Vector search and embeddings
+faiss-cpu>=1.7.0
+sentence-transformers>=2.2.0
+transformers>=4.20.0
+torch>=2.0.0
+
+# AI Provider APIs
+openai>=1.0.0
+python-dotenv>=1.0.0
+
+# Enhanced NLP features
+spacy>=3.4.0
+# Note: After installation, run: python -m spacy download en_core_web_sm
+# Optional medical model: pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.3/en_core_sci_md-0.5.3.tar.gz
+
+# Utilities
+pathlib2>=2.3.0
+typing-extensions>=4.0.0
+
+# Optional GPU support (uncomment for NVIDIA GPUs)
+# torch>=2.0.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+# torchvision>=0.15.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+# torchaudio>=2.0.0+cu118 --index-url https://download.pytorch.org/whl/cu118

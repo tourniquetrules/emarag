@@ -175,6 +175,38 @@ emarag/
 └── setup_medical_embeddings.sh # Setup script
 ```
 
+## 🗂️ Repository Structure
+
+```
+emarag/
+├── emergency_rag_chatbot.py    # 🚀 Main application
+├── requirements.txt            # 📦 Python dependencies
+├── README.md                  # 📚 Main documentation
+├── .env.example              # ⚙️ Environment variables template
+├── .gitignore                # 🔒 Git ignore rules
+├── scripts/                  # 🛠️ Setup and utility scripts
+│   ├── setup.sh             # Main setup script
+│   ├── setup_medical_embeddings.sh # Medical embeddings setup
+│   └── rebuild_emergency_rag.py    # Knowledge base rebuild tool
+├── examples/                 # 📋 Alternative implementations
+│   ├── chatbot.py           # Original simple chatbot
+│   └── meeting_minutes_rag.py # Meeting minutes RAG system
+├── analysis/                 # 🔬 Research and analysis scripts
+│   ├── medical_embeddings_analysis.py
+│   ├── medical_embeddings_implementation.py
+│   ├── enhanced_embedding_system.py
+│   └── test_medical_embeddings.py
+├── utils/                    # 🔧 Utility and helper functions
+│   ├── context_boundaries.py
+│   ├── rag_session_manager.py
+│   ├── session_isolation_example.py
+│   ├── multi_rag_best_practices.py
+│   └── fix_contaminated_model.py
+└── docs/                     # 📖 Additional documentation
+    ├── enhanced_rag_improvements.py
+    └── quick_integration_guide.py
+```
+
 ### Contributing
 1. Fork the repository
 2. Create a feature branch

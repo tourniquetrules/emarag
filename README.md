@@ -1,6 +1,6 @@
 # 🚑 Emergency Medicine RAG Chat Interface - Enhanced
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Gradio](https://img.shields.io/badge/interface-Gradio-orange.svg)](https://gradio.app/)
 
@@ -29,7 +29,7 @@ Advanced RAG (Retrieval-Augmented Generation) system for emergency medicine usin
 ## 🚀 Quick Setup
 
 ### Prerequisites
-- Python 3.11 or higher
+- Python 3.12 or higher (tested on Python 3.12.3)
 - **AI Provider Choice:** OpenAI API key OR LM Studio running locally
 - CUDA-compatible GPU (recommended for Clinical-BERT)
 
@@ -41,29 +41,35 @@ git clone https://github.com/tourniquetrules/emarag.git
 cd emarag
 ```
 
-2. **Install Python dependencies:**
+2. **Create and activate a Python 3.12 virtual environment:**
+```bash
+python3 -m venv venv312
+source venv312/bin/activate  # On Windows: venv312\Scripts\activate
+```
+
+3. **Install Python dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Install spaCy language model:**
+4. **Install spaCy language model:**
 ```bash
 python -m spacy download en_core_web_sm
 # Optional: Install medical spaCy model for enhanced performance
 pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.3/en_core_sci_md-0.5.3.tar.gz
 ```
 
-4. **Configure your AI provider:**
+5. **Configure your AI provider:**
    - **For OpenAI:** Create a `.env` file with `OPENAI_API_KEY=your_api_key_here`
    - **For Local AI:** Ensure LM Studio is running on the configured endpoint
 
-5. **Add your medical documents:**
+6. **Add your medical documents:**
 ```bash
 mkdir abstracts
 # Add your PDF files to the abstracts/ directory
 ```
 
-6. **Run the application:**
+7. **Run the application:**
 ```bash
 python3 emergency_rag_chatbot.py
 ```
@@ -111,9 +117,18 @@ echo "OPENAI_API_KEY=your_api_key_here" > .env
 
 1. **Choose AI Provider:** On startup, select between Local AI or OpenAI
 2. **Upload PDFs:** Use the Knowledge Base Management section to upload emergency medicine abstracts
+   - **Auto-Save Feature:** Uploaded PDFs are automatically saved to the `abstracts/` directory
+   - **Persistent Storage:** Documents will auto-load on next startup
 3. **Ask Medical Questions:** Type your emergency medicine questions in the chat interface
 4. **General Knowledge:** Use `@llm` prefix for non-medical questions that bypass the RAG system
 5. **Monitor Performance:** View response metrics, sources used, and session statistics
+
+### Knowledge Base Management
+- **Upload PDFs:** Drag and drop PDF files through the web interface
+- **Auto-Save:** All uploaded PDFs are automatically saved to `abstracts/` directory
+- **Reload:** Use "Reload from abstracts directory" to refresh the knowledge base
+- **Save Temporary:** Use "Save Uploaded PDFs" to save any remaining temporary files
+- **Clear:** Clear the knowledge base to start fresh
 
 ## 🎯 Expected Performance Improvements
 
@@ -153,7 +168,8 @@ Final Response ← Enhanced Prompt ← Top K Chunks ← Relevance Scoring
 
 ## 📋 System Requirements
 
-- **Python:** 3.11+
+- **Python:** 3.12+ (tested on Python 3.12.3)
+- **Virtual Environment:** Recommended for dependency isolation
 - **RAM:** 4GB+ recommended (8GB+ for optimal performance)
 - **Storage:** 2GB+ free space (Clinical-BERT model cache)
 - **GPU:** CUDA-compatible GPU recommended for Clinical-BERT

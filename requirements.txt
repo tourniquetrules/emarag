@@ -1,22 +1,22 @@
-# Core dependencies for Emergency Medicine RAG Chat Interface
-gradio>=4.0.0
-requests>=2.25.0
-PyPDF2>=3.0.0
-numpy>=1.21.0
-pickle-mixin>=1.0.2
+# Core dependencies for Emergency Medicine RAG Chat Interface - Python 3.12 Compatible
+gradio>=4.44.0
+requests>=2.31.0
+pypdf>=4.0.0
+numpy>=1.24.0
+# pickle-mixin not needed in Python 3.12
 
 # Vector search and embeddings
-faiss-cpu>=1.7.0
-sentence-transformers>=2.2.0
-transformers>=4.20.0
-torch>=2.0.0
+faiss-cpu>=1.8.0
+sentence-transformers>=3.0.0
+transformers>=4.40.0
+torch>=2.3.0
 
 # AI Provider APIs
-openai>=1.0.0
+openai>=1.40.0
 python-dotenv>=1.0.0
 
 # Enhanced NLP features
-spacy>=3.4.0
+spacy>=3.7.0
 # Note: After installation, run: python -m spacy download en_core_web_sm
 # Optional medical model: pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.3/en_core_sci_md-0.5.3.tar.gz
 

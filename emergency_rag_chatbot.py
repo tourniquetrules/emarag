@@ -3,7 +3,7 @@ import requests
 import json
 import time
 import re
-import PyPDF2
+import pypdf
 import numpy as np
 import faiss
 import pickle
@@ -12,9 +12,21 @@ from typing import List, Dict, Tuple
 import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
+import sys
 
 # Load environment variables
 load_dotenv()
+
+# Python version compatibility check
+if sys.version_info < (3, 9):
+    print("❌ Error: This application requires Python 3.9 or higher")
+    print(f"   Current version: {sys.version}")
+    sys.exit(1)
+elif sys.version_info >= (3, 13):
+    print(f"⚠️  Warning: Python {sys.version_info.major}.{sys.version_info.minor} is newer than tested versions")
+    print("   This application was optimized for Python 3.9-3.12")
+else:
+    print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro} compatibility verified")
 
 # Medical embedding imports
 try:
@@ -62,7 +74,7 @@ USE_OPENAI = False  # Will be set based on user choice
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # API configuration - LM Studio (Local AI)
-LM_STUDIO_BASE_URL = "http://10.5.0.2:1234"
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://192.168.2.64:1234")  # Default fallback
 LM_STUDIO_MODEL_NAME = "deepseek/deepseek-r1-0528-qwen3-8b"
 LM_STUDIO_EMBEDDING_MODEL_NAME = "text-embedding-all-minilm-l6-v2-embedding"  # Fallback for LM Studio
 
@@ -73,6 +85,14 @@ OPENAI_EMBEDDING_MODEL_NAME = "text-embedding-3-large"
 # Dynamic model names (will be set based on provider choice)
 MODEL_NAME = LM_STUDIO_MODEL_NAME
 EMBEDDING_MODEL_NAME = LM_STUDIO_EMBEDDING_MODEL_NAME
+
+# Clinical-BERT model for medical embeddings
+# Note: This model is cached after first download (~1GB) in ~/.cache/huggingface/
+# The "Creating new one with mean pooling" message appears each startup but is just
+# a fast conversion step, not a re-download. Alternative pre-optimized models:
+# - "sentence-transformers/all-MiniLM-L6-v2" (general, faster startup)
+# - "sentence-transformers/all-mpnet-base-v2" (better quality, general)
+# - "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext" (medical)
 CLINICAL_BERT_MODEL = "emilyalsentzer/Bio_ClinicalBERT"  # Primary medical embedding model
 
 # RAG configuration - Enhanced for medical content
@@ -394,12 +414,12 @@ def extract_text_from_pdf(pdf_file) -> str:
         # Handle both file path and file object
         if isinstance(pdf_file, str):
             with open(pdf_file, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+                pdf_reader = pypdf.PdfReader(file)
                 text = ""
                 for page in pdf_reader.pages:
                     text += page.extract_text() + "\n"
         else:
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            pdf_reader = pypdf.PdfReader(pdf_file)
             text = ""
             for page in pdf_reader.pages:
                 text += page.extract_text() + "\n"
@@ -839,25 +859,69 @@ def check_embedding_api_health():
         return False
 
 def upload_pdf(files):
-    """Handle PDF file upload"""
+    """Handle PDF file upload and save to abstracts directory"""
     if not files:
         return "No files uploaded.", ""
     
+    # Ensure abstracts directory exists
+    abstracts_dir = "abstracts"
+    os.makedirs(abstracts_dir, exist_ok=True)
+    
     results = []
     total_chunks = 0
+    saved_files = []
     
     for file in files:
         file_name = os.path.basename(file.name) if hasattr(file, 'name') else "Unknown file"
+        
+        # Process the PDF for RAG
         chunks_added = process_pdf_document(file, file_name)
         total_chunks += chunks_added
         
-        if chunks_added > 0:
-            results.append(f"✅ {file_name}: {chunks_added} chunks processed")
-        else:
-            results.append(f"❌ {file_name}: Failed to process")
+        # Save the PDF to abstracts directory permanently
+        try:
+            if hasattr(file, 'name') and file.name:
+                # Copy the uploaded file to abstracts directory
+                abstracts_path = os.path.join(abstracts_dir, file_name)
+                
+                # Avoid overwriting existing files
+                counter = 1
+                original_name = file_name
+                while os.path.exists(abstracts_path):
+                    name_parts = original_name.rsplit('.', 1)
+                    if len(name_parts) == 2:
+                        file_name = f"{name_parts[0]}_{counter}.{name_parts[1]}"
+                    else:
+                        file_name = f"{original_name}_{counter}"
+                    abstracts_path = os.path.join(abstracts_dir, file_name)
+                    counter += 1
+                
+                # Copy file to permanent location
+                import shutil
+                shutil.copy2(file.name, abstracts_path)
+                saved_files.append(file_name)
+                
+                if chunks_added > 0:
+                    results.append(f"✅ {file_name}: {chunks_added} chunks processed & saved")
+                else:
+                    results.append(f"⚠️  {file_name}: Saved but processing failed")
+            else:
+                if chunks_added > 0:
+                    results.append(f"✅ {file_name}: {chunks_added} chunks processed (not saved - no file path)")
+                else:
+                    results.append(f"❌ {file_name}: Failed to process")
+                    
+        except Exception as e:
+            if chunks_added > 0:
+                results.append(f"✅ {file_name}: {chunks_added} chunks processed (save failed: {str(e)})")
+            else:
+                results.append(f"❌ {file_name}: Processing and save failed")
     
     summary = f"📊 **Upload Summary:**\n" + "\n".join(results)
     summary += f"\n\n**Total documents in knowledge base:** {len(document_store)} chunks"
+    
+    if saved_files:
+        summary += f"\n**📁 Saved to abstracts/:** {', '.join(saved_files)}"
     
     knowledge_status = f"📚 Knowledge Base: {len(document_store)} chunks from {len(set(chunk['source'] for chunk in document_store))} documents"
     
@@ -1267,7 +1331,7 @@ with gr.Blocks(title="Emergency Medicine RAG Chat", theme=gr.themes.Soft()) as d
                 
                 with gr.Row():
                     pdf_upload = gr.Files(
-                        label="Upload Additional PDFs",
+                        label="Upload Additional PDFs (Auto-saved to abstracts/)",
                         file_types=[".pdf"],
                         file_count="multiple"
                     )
@@ -1275,6 +1339,7 @@ with gr.Blocks(title="Emergency Medicine RAG Chat", theme=gr.themes.Soft()) as d
                 
                 with gr.Row():
                     reload_btn = gr.Button("Reload from 'abstracts' directory", variant="secondary")
+                    save_temp_btn = gr.Button("Save Uploaded PDFs", variant="secondary")
                     clear_kb_btn = gr.Button("Clear Knowledge Base", variant="secondary")
                 
                 upload_status = gr.Textbox(
@@ -1387,6 +1452,24 @@ with gr.Blocks(title="Emergency Medicine RAG Chat", theme=gr.themes.Soft()) as d
         outputs=[upload_status, knowledge_status]
     )
     
+    def save_temp_pdfs():
+        """Save temporary PDFs and return status"""
+        saved_files = save_temp_pdfs_to_abstracts()
+        if saved_files:
+            status = f"📁 **Saved {len(saved_files)} PDFs to abstracts/:**\n" + "\n".join([f"✅ {f}" for f in saved_files])
+            status += f"\n\n💡 These PDFs will now auto-load on next startup."
+        else:
+            status = "ℹ️  No temporary PDFs found to save."
+        
+        knowledge_status = f"📚 Knowledge Base: {len(document_store)} chunks from {len(set(chunk['source'] for chunk in document_store))} documents"
+        return status, knowledge_status
+    
+    save_temp_btn.click(
+        fn=save_temp_pdfs,
+        inputs=[],
+        outputs=[upload_status, knowledge_status]
+    )
+    
     send_btn.click(
         fn=rag_chat_response,
         inputs=[msg_input, chatbot, temperature, max_tokens, system_prompt, show_reasoning, enable_streaming, context_length, enable_rag],
@@ -1471,3 +1554,50 @@ if __name__ == "__main__":
         share=False,
         show_error=True
     )
+
+def save_temp_pdfs_to_abstracts():
+    """Save any remaining temporary PDFs to abstracts directory"""
+    import glob
+    import shutil
+    
+    # Ensure abstracts directory exists
+    abstracts_dir = "abstracts"
+    os.makedirs(abstracts_dir, exist_ok=True)
+    
+    # Look for temporary Gradio PDFs
+    temp_patterns = [
+        "/tmp/gradio/*/*.pdf",
+        "/tmp/*gradio*/*.pdf",
+        "/tmp/*/gradio*/*.pdf"
+    ]
+    
+    saved_files = []
+    
+    for pattern in temp_patterns:
+        temp_files = glob.glob(pattern)
+        for temp_file in temp_files:
+            try:
+                file_name = os.path.basename(temp_file)
+                abstracts_path = os.path.join(abstracts_dir, file_name)
+                
+                # Avoid overwriting existing files
+                counter = 1
+                original_name = file_name
+                while os.path.exists(abstracts_path):
+                    name_parts = original_name.rsplit('.', 1)
+                    if len(name_parts) == 2:
+                        file_name = f"{name_parts[0]}_{counter}.{name_parts[1]}"
+                    else:
+                        file_name = f"{original_name}_{counter}"
+                    abstracts_path = os.path.join(abstracts_dir, file_name)
+                    counter += 1
+                
+                # Copy file to permanent location
+                shutil.copy2(temp_file, abstracts_path)
+                saved_files.append(file_name)
+                print(f"📁 Saved {file_name} to abstracts directory")
+                
+            except Exception as e:
+                print(f"❌ Failed to save {temp_file}: {e}")
+    
+    return saved_files

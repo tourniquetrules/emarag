@@ -35,6 +35,7 @@ MANIFEST
 
 # Virtual environments
 venv/
+venv312/
 env/
 ENV/
 env.bak/
@@ -89,6 +90,11 @@ tmp/
 *.pid
 *.seed
 *.pid.lock
+
+# Cloudflare tunnel files
+cloudflared.deb
+cloudflared
+*.cloudflared
 
 # Coverage reports
 htmlcov/
